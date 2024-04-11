@@ -1,9 +1,10 @@
-import matplotlib.pyplot as plt
-import seaborn as sns
 import pandas as pd
 import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
 from sklearn.impute import KNNImputer
 from sklearn.preprocessing import StandardScaler
+from sklearn.ensemble import RandomForestClassifier
 
 # 1 Raw data visualization
 # 1.1 Load data
@@ -132,8 +133,48 @@ X_train = fill_missing_values_knn(X_train)
 # visualize the data after filling missing values
 visulization_raw_data(X_train,features_per_plot=10)
 
+# visualize the y_train data
+visulization_raw_data(y_train,features_per_plot=10)
 
 
-x.fillna(x.mean(), inplace=True)
-x.to_csv('x.csv', index=False)
-y.to_csv('y.csv', index=False)
+# 1.4 correlation analysis between features and target
+# compute and visualize the correlation matrix
+def visualize_correlations(df):
+    correlation_matrix = df.corr()
+    plt.figure(figsize=(12, 10))
+    sns.heatmap(correlation_matrix, annot=True, cmap='coolwarm', fmt=".2f")
+    plt.title('Features Correlation Heatmap')
+    plt.show()
+
+# visualize the correlation matrix for X_train and y_train
+visualize_correlations(X_train)
+visualize_correlations(y_train)
+
+# 1.5 feature importance using random forest
+def feature_importance(X_train, y_train):
+    model = RandomForestClassifier()  # Use RandomForestRegressor for a regression problem
+    model.fit(X_train, y_train)
+
+    # Get feature importance
+    importances = model.feature_importances_
+    features = X_train.columns
+    feature_importance = pd.Series(importances, index=features).sort_values(ascending=False)
+
+    # Plot feature importance
+    plt.figure(figsize=(12, 16))
+    sns.barplot(x=feature_importance, y=feature_importance.index)
+    plt.title('Feature Importance')
+    plt.xlabel('Importance Score')
+    plt.ylabel('Features')
+    plt.show()
+    return feature_importance
+    
+features_importance = feature_importance(X_train, y_train)
+print(features_importance)
+
+# drop features with importance less than 0.01
+X_train = X_train[features_importance[features_importance >= 0.01].index]
+
+
+X_train.to_csv('X_train.csv', index=False)
+y_train.to_csv('y_train.csv', index=False)
