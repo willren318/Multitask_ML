@@ -167,10 +167,10 @@ def feature_importance(X_train, y_train):
     plt.xlabel('Importance Score')
     plt.ylabel('Features')
     plt.show()
-    return feature_importance
     
-features_importance = feature_importance(X_train, y_train)
-print(features_importance)
+    return feature_importance, feature_importance[feature_importance < 0.01].index.tolist()
+    
+features_importance, low_importance_features = feature_importance(X_train, y_train)
 
 # drop features with importance less than 0.01
 X_train = X_train[features_importance[features_importance >= 0.01].index]
@@ -178,3 +178,6 @@ X_train = X_train[features_importance[features_importance >= 0.01].index]
 
 X_train.to_csv('X_train.csv', index=False)
 y_train.to_csv('y_train.csv', index=False)
+
+# final columns to drop
+final_columns_to_drop = columns_to_drop + low_importance_features
