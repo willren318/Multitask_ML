@@ -51,9 +51,9 @@ def visulization_raw_data(df, features_per_plot):
 visulization_raw_data(X_train,features_per_plot=10)
 # visulization_raw_data(y_train,features_per_plot=11)
 
-# 1.3 preprocess raw data given the visualization
+# 2 preprocess raw data given the visualization
 
-# 1.3.1 drop columns:
+# 2.1 drop columns with too many missing values:
 # define a function to determine if a column should be dropped based on the count of NaN and 0 values
 def should_drop(column):
     nan_count = column.isna().sum()
@@ -95,9 +95,9 @@ x_80 as it has 994 `0` and 6 `nan`,
 x_87 as it has 998 `nan`
 '''
 
-# 1.3.2 try to fill missing values with different methods
+# 2.2 try to fill missing values with different methods
 
-# 1.3.2.1 fill with mode for binary features and mean(rounded to nearest int) for numerical features
+# 2.2.1 fill with mode for binary features and mean(rounded to nearest int) for numerical features
 def fill_missing_values_mode_mean(df):
     filled_df = df.copy()
     for column in filled_df.columns:
@@ -109,7 +109,7 @@ def fill_missing_values_mode_mean(df):
             filled_df[column].fillna(mean_value, inplace=True)
     return filled_df
 
-# 1.3.2.2 fill missing value using KNN imputation
+# 2.2.2 fill missing value using KNN imputation
 def fill_missing_values_knn(df, n_neighbors=5):
     scaler = StandardScaler()
     df_scaled = scaler.fit_transform(df)
@@ -137,7 +137,7 @@ visulization_raw_data(X_train,features_per_plot=10)
 visulization_raw_data(y_train,features_per_plot=10)
 
 
-# 1.4 correlation analysis between features and target
+# 3 correlation analysis between features and target
 # compute and visualize the correlation matrix
 def visualize_correlations(df):
     correlation_matrix = df.corr()
@@ -150,7 +150,7 @@ def visualize_correlations(df):
 visualize_correlations(X_train)
 visualize_correlations(y_train)
 
-# 1.5 feature importance using random forest
+# 4 feature importance using random forest
 def feature_importance(X_train, y_train):
     model = RandomForestClassifier()  # Use RandomForestRegressor for a regression problem
     model.fit(X_train, y_train)
@@ -175,7 +175,7 @@ features_importance, low_importance_features = feature_importance(X_train, y_tra
 # drop features with importance less than 0.01
 X_train = X_train[features_importance[features_importance >= 0.01].index]
 
-
+# 5 save the preprocessed data to csv files 'X_train.csv' and 'y_train.csv'
 X_train.to_csv('X_train.csv', index=False)
 y_train.to_csv('y_train.csv', index=False)
 
