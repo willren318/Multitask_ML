@@ -5,6 +5,7 @@ import seaborn as sns
 from sklearn.impute import KNNImputer
 from sklearn.preprocessing import StandardScaler
 from sklearn.ensemble import RandomForestClassifier
+import os
 
 # 1 Raw data visualization
 # 1.1 Load data
@@ -15,9 +16,15 @@ print(y_train.shape)
 X_train = pd.DataFrame(X_train, columns=['x_' + str(i) for i in range(X_train.shape[1])], dtype=np.float32)
 y_train = pd.DataFrame(y_train, columns=['y_' + str(i) for i in range(y_train.shape[1])], dtype=np.float32)
 
-
+# create a directory to save plots if it doesn't exist
+directory = 'data_plots'
+if not os.path.exists(directory):
+    os.makedirs(directory)
+    
 # 1.2 first impression of these raw data
-def visulization_raw_data(df, features_per_plot):
+def visulization_raw_data(df, features_per_plot, dataset_name):
+    # Create a directory to plot files if it doesn't exist
+
     total_features = df.columns
     num_plots = np.ceil(len(total_features) / features_per_plot).astype(int)
 
@@ -46,10 +53,13 @@ def visulization_raw_data(df, features_per_plot):
                             fontsize=12, bbox=dict(boxstyle="round", fc="yellow"))
 
         plt.tight_layout()
+        file_path = os.path.join(directory, f'{dataset_name}_{plot_index + 1}.png')
+        # Save each plot to directory
+        plt.savefig(file_path)
         plt.show()
     
-visulization_raw_data(X_train,features_per_plot=10)
-# visulization_raw_data(y_train,features_per_plot=11)
+visulization_raw_data(X_train, features_per_plot=10, dataset_name='X_train')
+visulization_raw_data(y_train,features_per_plot=10, dataset_name='y_train')
 
 # 2 preprocess raw data given the visualization
 
@@ -131,24 +141,26 @@ def fill_missing_values_knn(df, n_neighbors=5):
 X_train = fill_missing_values_knn(X_train)
 
 # visualize the data after filling missing values
-visulization_raw_data(X_train,features_per_plot=10)
-
-# visualize the y_train data
-visulization_raw_data(y_train,features_per_plot=10)
+visulization_raw_data(X_train,features_per_plot=10, dataset_name='X_train_filled')
 
 
 # 3 correlation analysis between features and target
 # compute and visualize the correlation matrix
-def visualize_correlations(df):
+def visualize_correlations(df, dataset_name):
     correlation_matrix = df.corr()
     plt.figure(figsize=(12, 10))
     sns.heatmap(correlation_matrix, annot=True, cmap='coolwarm', fmt=".2f")
-    plt.title('Features Correlation Heatmap')
+    plt.title('Correlation Heatmap')
+    
+    file_path = os.path.join(directory, f'{dataset_name}_correlation.png')
+    # Save each plot to directory
+    plt.savefig(file_path)
+    
     plt.show()
 
 # visualize the correlation matrix for X_train and y_train
-visualize_correlations(X_train)
-visualize_correlations(y_train)
+visualize_correlations(X_train, dataset_name='X_train')
+visualize_correlations(y_train, dataset_name='y_train')
 
 # 4 feature importance using random forest
 def feature_importance(X_train, y_train):
@@ -166,6 +178,11 @@ def feature_importance(X_train, y_train):
     plt.title('Feature Importance')
     plt.xlabel('Importance Score')
     plt.ylabel('Features')
+    
+    file_path = os.path.join(directory, f'features_importance.png')
+    # Save each plot to directory
+    plt.savefig(file_path)
+    
     plt.show()
     
     return feature_importance, feature_importance[feature_importance < 0.01].index.tolist()
@@ -178,6 +195,7 @@ X_train = X_train[features_importance[features_importance >= 0.01].index]
 # 5 save the preprocessed data to csv files 'X_train.csv' and 'y_train.csv'
 X_train.to_csv('X_train.csv', index=False)
 y_train.to_csv('y_train.csv', index=False)
+
 
 # final columns to drop
 final_columns_to_drop = columns_to_drop + low_importance_features
