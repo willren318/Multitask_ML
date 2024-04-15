@@ -14,19 +14,22 @@ accuracies = []
 f1s = []
 recalls = []
 precisions = []
-models = [AdaBoostClassifier() for _ in range(11)]
+models = [SVC(), RandomForestClassifier(), AdaBoostClassifier()]
 
-for i in range(11):
+
+begin = 3
+end = 7
+for i in range(begin + 1, begin + 2):
     df = pd.concat([x, y.iloc[:, i]], axis=1)
-    df_majority = df[df['y_' + str(i)] == 0]
-    df_minority = df[df['y_' + str(i)] == 1]
+    df_majority = df[df['y_'+str(i)] == 0]
+    df_minority = df[df['y_'+str(i)] == 1]
 
     # 过采样少数类
     df_minority_upsampled = resample(
         df_minority,
-        replace=True,  # 样本替换
-        n_samples=len(df_majority),  # 匹配多数类的样本数量
-        random_state=123)  # 随机数生成器种子
+         replace=True,     # 样本替换
+         n_samples=len(df_majority),  # 匹配多数类的样本数量
+         random_state=123)  # 随机数生成器种子
 
     # 合并多数类和少数类样本得到新的平衡数据集
     df_balanced = pd.concat([df_minority_upsampled, df_majority])
@@ -39,6 +42,7 @@ for i in range(11):
     poly = PolynomialFeatures(degree=2)
     x_train_poly = poly.fit_transform(x_train)
     x_test_poly = poly.fit_transform(x_test)
+
 
     models[i].fit(x_train_poly, y_train)
     labels = models[i].predict(x_test_poly)
