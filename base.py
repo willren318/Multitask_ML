@@ -14,12 +14,12 @@ accuracies = []
 f1s = []
 recalls = []
 precisions = []
-models = [SVC(), RandomForestClassifier(), AdaBoostClassifier()]
+models = [RandomForestClassifier()] * 11
 
 
-begin = 3
-end = 7
-for i in range(begin + 1, begin + 2):
+begin = 0
+end = 3
+for i in range(begin, 11):
     df = pd.concat([x, y.iloc[:, i]], axis=1)
     df_majority = df[df['y_'+str(i)] == 0]
     df_minority = df[df['y_'+str(i)] == 1]
