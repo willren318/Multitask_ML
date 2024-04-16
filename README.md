@@ -37,3 +37,7 @@ Using 11 AdaBoost models to test sum of accuracies with different thresholds:
 ## base.py
 
 划分输入数据，做二项式扩展，创建11个相同的分类器AdaBoost，训练出11个分类器，分别计算准确率和r2 score.
+
+## muti.ipynb
+
+将11个label一起进行 ML， 用了 GradientBoostingRegressor，平均准确率为0.829
