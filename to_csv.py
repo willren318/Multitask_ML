@@ -11,10 +11,14 @@ import os
 # 1.1 Load data
 X_train = np.load("X_train.npy")
 print(X_train.shape)
+
 y_train = np.load("y_train.npy")
 print(y_train.shape)
+X_test = np.load("X_test.npy")
+
 X_train = pd.DataFrame(X_train, columns=['x_' + str(i) for i in range(X_train.shape[1])], dtype=np.float32)
 y_train = pd.DataFrame(y_train, columns=['y_' + str(i) for i in range(y_train.shape[1])], dtype=np.float32)
+X_test = pd.DataFrame(X_test, columns=['x_' + str(i) for i in range(X_test.shape[1])], dtype=np.float32)
 
 # create a directory to save plots if it doesn't exist
 directory = 'data_plots'
@@ -190,11 +194,13 @@ def feature_importance(X_train, y_train):
 features_importance, low_importance_features = feature_importance(X_train, y_train)
 
 # drop features with importance less than 0.01
-X_train = X_train[features_importance[features_importance >= 0.01].index]
+X_train = X_train[features_importance[features_importance >= 0.005].index]
 
 # 5 save the preprocessed data to csv files 'X_train.csv' and 'y_train.csv'
 X_train.to_csv('X_train.csv', index=False)
+
 y_train.to_csv('y_train.csv', index=False)
+X_test.to_csv('X_test.csv', index=False)
 
 
 # final columns to drop

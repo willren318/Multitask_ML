@@ -7,6 +7,7 @@ import pandas as pd
 from sklearn.svm import SVC
 from sklearn.utils import resample
 import matplotlib.pyplot as plt
+from imblearn.over_sampling import SMOTE
 
 x = pd.read_csv('X_train.csv')
 y = pd.read_csv('y.csv')
@@ -17,6 +18,8 @@ df = pd.concat([x, y], axis=1)
 # Split original data
 x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.2, random_state=42, shuffle=True)
 
+
+
 # Define classifiers and their parameter grids
 classifiers = {
     'RandomForest': (RandomForestClassifier(random_state=42), {'n_estimators': [100, 200, 300], 'max_depth': [None, 10, 20], 'min_samples_split': [2, 5, 10]}),
@@ -24,13 +27,22 @@ classifiers = {
     'AdaBoost': (AdaBoostClassifier(random_state=42), {'n_estimators': [50, 100, 200], 'learning_rate': [0.01, 0.1, 1]})
 }
 
-classifier_name = 'RandomForest'  # Example: Switch between 'RandomForest', 'SVC', 'AdaBoost'
+classifier_name = 'SVC'  # Example: Switch between 'RandomForest', 'SVC', 'AdaBoost'
 model, param_grid = classifiers[classifier_name]
 
 accuracies = []
 f1s = []
 recalls = []
 precisions = []
+
+
+def binary_cross_entropy(y_true, y_prob):
+    # Avoid division by zero
+    epsilon = 1e-15
+    y_prob = np.clip(y_prob, epsilon, 1 - epsilon)
+    return -np.mean(y_true * np.log(y_prob) + (1 - y_true) * np.log(1 - y_prob))
+
+cross_entropy_losses = []
 
 for column in y_train.columns:
     # Create a DataFrame for each label within the training data
@@ -69,9 +81,14 @@ for column in y_train.columns:
     f1s.append(f1_score(y_test[column], labels))
     recalls.append(recall_score(y_test[column], labels))
     precisions.append(precision_score(y_test[column], labels))
+    
+    # Calculate binary cross-entropy loss
+    loss = binary_cross_entropy(y_test[column], probabilities)
+    cross_entropy_losses.append(loss)
 
     print("Best parameters for label", column, ":", grid.best_params_)
     print("Optimal threshold for label", column, ":", optimal_threshold)
+    print("Binary Cross-Entropy Loss for label", column, ":", loss)
 
 # Output the performance metrics
 print('=' * 40)
@@ -79,32 +96,7 @@ print('Accuracies:', accuracies)
 print('F1 scores:', f1s)
 print('Recall scores:', recalls)
 print('Precision scores:', precisions)
+print('Binary Cross-Entropy Losses:', cross_entropy_losses)
 
-
-
-
-# y_true = []
-# y_pred = []
-
-# # Inference
-# def loss_fn(y_pred, y_true):
-#     total_loss = 0
-#     for i in range(y_pred.shape[0]):
-#         loss = 0
-#         for j in range(y_true.shape[1]):
-#             y, y_hat = y_true[i, j], y_pred[i, j]
-#             loss += -y * np.log(y_hat) - (1 - y) * np.log(1 - y_hat)
-#         loss /= 11
-#         total_loss += loss
-#     return total_loss / y_pred.shape[0]
-
-# labels = []
-# for i in range(11):
-#     label = models[i].predict(x)
-#     labels.append(label)
-# labels = np.array(labels)
-
-# print('=' * 20 + 'Total Loss' + '=' * 20)
-# print(loss_fn(labels, y_inference))
-
+print(sum(cross_entropy_losses) / len(cross_entropy_losses))
 
