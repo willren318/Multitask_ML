@@ -1,11 +1,12 @@
 import numpy as np
-from sklearn.ensemble import RandomForestClassifier, AdaBoostClassifier
+from sklearn.ensemble import RandomForestClassifier, AdaBoostClassifier, GradientBoostingClassifier
 from sklearn.metrics import accuracy_score, r2_score, recall_score, precision_score, f1_score, roc_curve, auc
 from sklearn.model_selection import train_test_split, GridSearchCV
 from sklearn.preprocessing import PolynomialFeatures
 import pandas as pd
 from sklearn.svm import SVC
 from sklearn.utils import resample
+import xgboost as xgb
 import matplotlib.pyplot as plt
 
 x = pd.read_csv('X_train.csv')
@@ -21,10 +22,13 @@ x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.2, random_
 classifiers = {
     'RandomForest': (RandomForestClassifier(random_state=42), {'n_estimators': [100, 200, 300], 'max_depth': [None, 10, 20], 'min_samples_split': [2, 5, 10]}),
     'SVC': (SVC(probability=True, random_state=42), {'C': [0.1, 1, 10], 'kernel': ['rbf']}),
-    'AdaBoost': (AdaBoostClassifier(random_state=42), {'n_estimators': [50, 100, 200], 'learning_rate': [0.01, 0.1, 1]})
+    'AdaBoost': (AdaBoostClassifier(random_state=42), {'n_estimators': [50, 100, 200], 'learning_rate': [0.01, 0.1, 1]}),
+    'GradBoost': (GradientBoostingClassifier(), {'learning_rate': [0.1, 0.01], 'n_estimators': [100, 200]}),
+    'XGBoost':(xgb.XGBClassifier(), {'objective': ['multi:softmax'], 'num_class':[2], 'eval_metric':["mlogloss"]})
+
 }
 
-classifier_name = 'RandomForest'  # Example: Switch between 'RandomForest', 'SVC', 'AdaBoost'
+classifier_name = 'XGBoost'  # Example: Switch between 'RandomForest', 'SVC', 'AdaBoost'
 model, param_grid = classifiers[classifier_name]
 
 accuracies = []
