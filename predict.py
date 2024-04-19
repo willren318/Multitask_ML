@@ -52,7 +52,6 @@ class LinearModel(nn.Module):
             nn.ReLU(),
             nn.Dropout(0.5),
             nn.Linear(256, 128),
-            nn.BatchNorm1d(128),
             nn.ReLU(),
             nn.Linear(128, 1),
             nn.Sigmoid()
@@ -67,67 +66,57 @@ def loss_fn(y_pred, y_true):
         loss = 0
         for j in range(y_true.shape[1]):
             y, y_hat = y_true[i, j], y_pred[i, j]
-            loss += -y * torch.log(y_hat) - (1 - y) * torch.log(1 - y_hat)
+            loss += -y * np.log(y_hat) - (1 - y) * np.log(1 - y_hat)
         loss /= 11
         total_loss += loss
     return total_loss / y_pred.shape[0]
 
 
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-models = [torch.load(f'models0/model{i}.pth') for i in range(11)]
+def calculate_loss():
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    models = [torch.load(f'models/model{i}.pth') for i in range(11)]
 
-accuracies = []
-f1s = []
-precisions = []
-recalls = []
-result_y_pred = []
-result_y_true = []
-for i in range(11):
-    epochs = 100
-    batch_size = 16
-    test_set = MyDataset('split_test.csv', i_label=i)
+    test_data = pd.read_csv('split_test.csv')
+    features = test_data.iloc[:, :-11]
+    labels = test_data.iloc[:, -11:].to_numpy()
 
-    test_loader = DataLoader(test_set, batch_size=1, shuffle=False)
+    result_y_pred = []
+    for i in range(11):
+        y_preds = []
+        for x in features.values:
+            x = torch.tensor(x, dtype=torch.float32).reshape((1, -1)).to(device)
+            y_pred = models[i](x).flatten()
+            # y = 1 if y_pred > 0.5 else 0
+            y_preds.append(y_pred.item())
 
-    models[i].eval()
-    y_preds = []
-    y_trues = []
-    acc_sum = 0
-    for x, y_true in test_loader:
-        x, y_true = x.to(device), y_true.to(device)
-        y_pred = models[i](x).flatten()
-        # y_pred = 1 if y_pred > 0.5 else 0
-        y = 1 if y_pred > 0.5 else 0
-        y_preds.append(y)
-        y_trues.append(y_true.item())
-        print(y_pred, y, y_true.item())
+        result_y_pred.append(y_preds)
 
-    result_y_pred.append(y_preds)
-    result_y_true.append((y_trues))
-
-    y_trues = np.array(y_trues)
-    y_preds = np.array(y_preds)
-
-    accuracy = accuracy_score(y_trues, y_preds)
-    f1 = f1_score(y_trues, y_preds)
-    precision = precision_score(y_trues, y_preds)
-    recall = recall_score(y_trues, y_preds)
-
-    accuracies.append(accuracy)
-    f1s.append(f1)
-    precisions.append(precision)
-    recalls.append(recall)
-
-    print(f'accuracy = {accuracy}')
-    print(f'f1_score = {f1}')
-    print(f'precision_score = {precision}')
-    print(f'recall_score = {recall}')
-
-result_y_pred = np.array(result_y_pred).T
-result_y_true = np.array(result_y_true).T
-print(result_y_pred)
-print(result_y_true)
+    result_y_pred = np.array(result_y_pred).T
+    return loss_fn(result_y_pred, labels)
 
 
+def predict():
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    models = [torch.load(f'models/model{i}.pth') for i in range(11)]
 
+    test_data = pd.read_csv('X_test.csv')
+
+    result_y_pred = []
+    for i in range(11):
+        y_preds = []
+        for x in test_data.values:
+            x = torch.tensor(x, dtype=torch.float32).reshape((1, -1)).to(device)
+            y_pred = models[i](x).flatten()
+            y = 1 if y_pred > 0.5 else 0
+            y_preds.append(y)
+
+        result_y_pred.append(y_preds)
+
+    result_y_pred = np.array(result_y_pred).T
+    print(result_y_pred)
+
+
+if __name__ == '__main__':
+
+    calculate_loss()
 
