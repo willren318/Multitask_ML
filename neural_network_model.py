@@ -13,6 +13,8 @@ from tensorflow.keras.layers import Dropout, BatchNormalization
 from tensorflow.keras import backend as K
 from tensorflow.keras.metrics import Precision, Recall, AUC
 import matplotlib.pyplot as plt
+from imblearn.over_sampling import SMOTE, RandomOverSampler
+
 
 # Set random seed for reproducibility
 seed(1)
@@ -24,6 +26,40 @@ y_train = pd.DataFrame(y_train)
 # X_test = pd.read_csv('X_test.csv')
 # X_test = X_test[X_train.columns]  # reorder columns in X_test to match X_train
 
+
+# Split preprocessed data
+x_train, x_test, y_train, y_test = train_test_split(X_train, y_train, test_size=0.2, random_state=42, shuffle=True)
+
+def apply_random_oversampling(X, y):
+    ros = RandomOverSampler(random_state=42)
+    y_resampled = pd.DataFrame(index=X.index)
+
+    # Initialize a flag to check if X has been resampled
+    X_resampled = None
+
+    # Apply Random Over-Sampling to each label independently
+    for column in y.columns:
+        y_column = y[column]
+        # Ensure y_column is in the right format
+        if y_column.ndim == 1 or (y_column.ndim == 2 and y_column.shape[1] == 1):
+            if X_resampled is None:  # Only resample X once using the first label
+                X_res, y_res = ros.fit_resample(X, y_column)
+                X_resampled = X_res
+            else:
+                _, y_res = ros.fit_resample(X, y_column)
+            y_resampled[column] = y_res
+        else:
+            raise ValueError(f"Incorrect format for label {column}")
+
+    return X_resampled, y_resampled
+
+# Example usage:
+x_train_resampled, y_train_resampled = apply_random_oversampling(x_train, y_train)
+
+
+# Number of samples added
+num_samples_added = x_train_resampled.shape[0] - x_train.shape[0]
+print(f"Number of samples added: {num_samples_added}")
 
 # Function to classify features
 def classify_features(df):
@@ -58,77 +94,18 @@ def preprocess_features(X):
         X = X.drop(categorical_features, axis=1)
         X = pd.concat([X, pd.DataFrame(X_encoded, columns=cat_cols)], axis=1)
     
-    return X
+    return X, continuous_features, binary_features
+
+
 
 # Preprocess entire dataset
-X_preprocessed = preprocess_features(X_train)
+x_train, continuous_features, binary_features = preprocess_features(x_train_resampled)
 
-# Split preprocessed data
-x_train, x_test, y_train, y_test = train_test_split(X_preprocessed, y_train, test_size=0.2, random_state=42, shuffle=True)
+# Preprocess entire dataset
+X_test, continuous_features, binary_features = preprocess_features(x_test)
 
-# # resample the minority class
-# df_train = pd.concat([x_train, y_train], axis=1)
-# df_majority = df_train[df_train[column] == 0]
-# df_minority = df_train[df_train[column] == 1]
+y_train = y_train_resampled
 
-# # Resample the minority class within the training data
-# df_minority_upsampled = resample(df_minority, replace=True, n_samples=len(df_majority), random_state=123)
-# df_balanced = pd.concat([df_minority_upsampled, df_majority]).sample(frac=1, random_state=42)
-
-# # Split the balanced data into features and target variable again
-# x_train_balanced = df_balanced.drop(column, axis=1)
-# y_train_balanced = df_balanced[column]
-
-
-
-
-# # Function to calculate the class weights
-# def compute_class_weight(pos_cases):
-#     total_cases = 1000  # total number of cases per label
-#     neg_cases = total_cases - pos_cases
-#     weight_for_0 = (1 / neg_cases) * (total_cases) / 2.0 
-#     weight_for_1 = (1 / pos_cases) * (total_cases) / 2.0
-#     return weight_for_0, weight_for_1
-
-# # Custom weighted binary crossentropy loss
-# def weighted_binary_crossentropy(y_true, y_pred):
-#     class_weight_0_tensor = tf.cast(class_weight_0, dtype=tf.float32)
-#     class_weight_1_tensor = tf.cast(class_weight_1, dtype=tf.float32)
-    
-#     # Ensure that y_true is a float32 tensor for consistent type operations
-#     y_true_float = tf.cast(y_true, dtype=tf.float32)
-
-#     # Calculate the weights for each class
-#     weights = y_true_float * class_weight_1_tensor + (1. - y_true_float) * class_weight_0_tensor
-#     # Calculate the binary crossentropy
-#     bce = K.binary_crossentropy(y_true_float, y_pred)
-#     # Apply the weights
-#     weighted_bce = weights * bce
-#     return K.mean(weighted_bce)
-
-# # Assuming an average of 25% positive cases per label
-# class_weight_0, class_weight_1 = compute_class_weight(250)
-
-
-
-# def calculate_sample_weights(y_train, positive_weight=4.0, negative_weight=1.0):
-#     # This function calculates sample weights based on label imbalances.
-#     # `y_train` is expected to be a DataFrame or a 2D numpy array with one column per label.
-#     weights = np.ones(y_train.shape)
-    
-#     # Assign weights
-#     for label in range(y_train.shape[1]):
-#         pos_indices = y_train[:, label] == 1
-#         neg_indices = y_train[:, label] == 0
-#         weights[pos_indices, label] = positive_weight
-#         weights[neg_indices, label] = negative_weight
-    
-#     # Return the average weight across all labels for each sample
-#     return np.mean(weights, axis=1)
-
-# y_train_np = y_train.to_numpy()
-# # Calculate sample weights
-# sample_weights = calculate_sample_weights(y_train_np)
 
 def custom_binary_crossentropy(y_true, y_pred):
     y_true = tf.cast(y_true, dtype=tf.float32)
@@ -152,6 +129,7 @@ def build_model(input_dim, output_dim):
         BatchNormalization(),
         Dropout(0.5),
         Dense(64, activation='relu'),
+        Dense(32, activation='relu'),
         Dense(output_dim, activation='sigmoid')  # sigmoid activation for binary classification
     ])
     optimizer = Adam(learning_rate=0.0001)
@@ -163,8 +141,10 @@ def build_model(input_dim, output_dim):
     
     return model
 
+
+
 model = build_model(input_dim=x_train.shape[1], output_dim=y_train.shape[1])
-# history = model.fit(x_train, y_train, epochs=300, batch_size=32, sample_weight=sample_weights, validation_data=(x_test, y_test))
+
 history = model.fit(x_train, y_train, epochs=300, batch_size=32, validation_data=(x_test, y_test))
 
 # Plot training & validation loss values

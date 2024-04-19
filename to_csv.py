@@ -14,11 +14,11 @@ print(X_train.shape)
 
 y_train = np.load("y_train.npy")
 print(y_train.shape)
-X_test = np.load("X_test.npy")
+X_test_pred = np.load("X_test.npy")
 
 X_train = pd.DataFrame(X_train, columns=['x_' + str(i) for i in range(X_train.shape[1])], dtype=np.float32)
 y_train = pd.DataFrame(y_train, columns=['y_' + str(i) for i in range(y_train.shape[1])], dtype=np.float32)
-X_test = pd.DataFrame(X_test, columns=['x_' + str(i) for i in range(X_test.shape[1])], dtype=np.float32)
+X_test_pred = pd.DataFrame(X_test_pred, columns=['x_' + str(i) for i in range(X_test_pred.shape[1])], dtype=np.float32)
 
 # create a directory to save plots if it doesn't exist
 directory = 'data_plots'
@@ -79,6 +79,7 @@ def should_drop(column):
 # identify columns to drop and drop them
 columns_to_drop = [col for col in X_train.columns if should_drop(X_train[col])]
 X_train.drop(columns=columns_to_drop, inplace=True)
+X_test_pred.drop(columns=columns_to_drop, inplace=True)
 
 '''
 columns_to_drop:
@@ -143,6 +144,7 @@ def fill_missing_values_knn(df, n_neighbors=5):
 # switch between different methods via uncommenting one of the following lines:
 # X_train = fill_missing_values_mode_mean(X_train)
 X_train = fill_missing_values_knn(X_train)
+X_test_pred = fill_missing_values_knn(X_test_pred)
 
 # visualize the data after filling missing values
 visulization_raw_data(X_train,features_per_plot=10, dataset_name='X_train_filled')
@@ -194,14 +196,20 @@ def feature_importance(X_train, y_train):
 features_importance, low_importance_features = feature_importance(X_train, y_train)
 
 # drop features with importance less than 0.01
-X_train = X_train[features_importance[features_importance >= 0.005].index]
+X_train = X_train[features_importance[features_importance >= 0.01].index]
 
 # 5 save the preprocessed data to csv files 'X_train.csv' and 'y_train.csv'
 X_train.to_csv('X_train.csv', index=False)
 
 y_train.to_csv('y_train.csv', index=False)
-X_test.to_csv('X_test.csv', index=False)
+
 
 
 # final columns to drop
 final_columns_to_drop = columns_to_drop + low_importance_features
+
+visualize_correlations(X_train, dataset_name='X_train')
+
+
+X_test_pred.drop(columns=low_importance_features, inplace=True)
+X_test_pred.to_csv('X_test_pred.csv', index=False)
