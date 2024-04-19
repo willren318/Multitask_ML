@@ -20,7 +20,7 @@ class MyDataset(Dataset):
     def __init__(self, data_file, i_label):
         self.data = pd.read_csv(data_file)
         features = self.data.iloc[:, 0:-11]
-        label = self.data.iloc[:, -11 + i_label]
+        label = self.data.iloc[:, -11+i_label]
         self.data = pd.concat([features, label], axis=1)
         if 'train' in data_file:
             i_label = 'y_' + str(i_label)
@@ -74,43 +74,20 @@ def loss_fn(y_pred, y_true):
 
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-models = [LinearModel(input_size=34).to(device)] * 11
+models = [torch.load(f'models0/model{i}.pth') for i in range(11)]
 
 accuracies = []
 f1s = []
 precisions = []
 recalls = []
-
-for i in range(1):
+result_y_pred = []
+result_y_true = []
+for i in range(11):
     epochs = 100
-    batch_size = 32
-    train_set = MyDataset('split_train.csv', i_label=i)
+    batch_size = 16
     test_set = MyDataset('split_test.csv', i_label=i)
 
-    train_loader = DataLoader(train_set, batch_size=batch_size, shuffle=False)
     test_loader = DataLoader(test_set, batch_size=1, shuffle=False)
-    models[i].train()
-    loss_FN = nn.MSELoss()
-    optimizer = optim.SGD(models[i].parameters(), lr=0.001, momentum=0.9)
-
-    bar = tqdm(range(epochs))
-    for epoch in bar:
-        losses = []
-        for x, y_true in train_loader:
-            x, y = x.to(device), y_true.to(device)
-            y_pred = models[i](x).flatten()
-            optimizer.zero_grad()
-            # loss = loss_fn(y_pred, y_true)
-            loss = loss_FN(y_pred, y)
-            loss.backward()
-            optimizer.step()
-            losses.append(loss.item())
-            # print(y_pred, y[:, 0])
-            # print(loss.item())
-        # print(sum(losses) / len(losses))
-        bar.set_description(f'Mean loss: {sum(losses) / len(losses)}')
-
-    torch.save(models[i], f'models/model{i}.pth')
 
     models[i].eval()
     y_preds = []
@@ -125,6 +102,8 @@ for i in range(1):
         y_trues.append(y_true.item())
         print(y_pred, y, y_true.item())
 
+    result_y_pred.append(y_preds)
+    result_y_true.append((y_trues))
 
     y_trues = np.array(y_trues)
     y_preds = np.array(y_preds)
@@ -144,10 +123,10 @@ for i in range(1):
     print(f'precision_score = {precision}')
     print(f'recall_score = {recall}')
 
-json.dump(accuracies, open('results/accuracies.json', 'w'))
-json.dump(f1s, open('results/f1s.json', 'w'))
-json.dump(precisions, open('results/precisions.json', 'w'))
-json.dump(recalls, open('results/recalls.json', 'w'))
+result_y_pred = np.array(result_y_pred).T
+result_y_true = np.array(result_y_true).T
+print(result_y_pred)
+print(result_y_true)
 
 
 
