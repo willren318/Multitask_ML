@@ -1,6 +1,11 @@
 import numpy as np
+<<<<<<< HEAD
 from sklearn.ensemble import RandomForestClassifier, AdaBoostClassifier, GradientBoostingClassifier
 from sklearn.metrics import accuracy_score, r2_score, recall_score, precision_score, f1_score, roc_curve, auc
+=======
+from sklearn.ensemble import RandomForestClassifier, AdaBoostClassifier
+from sklearn.metrics import accuracy_score, recall_score, precision_score, f1_score, roc_curve, auc
+>>>>>>> 9dfbdf6 (submit_version)
 from sklearn.model_selection import train_test_split, GridSearchCV
 from sklearn.preprocessing import PolynomialFeatures
 import pandas as pd
@@ -8,31 +13,34 @@ from sklearn.svm import SVC
 from sklearn.utils import resample
 import xgboost as xgb
 import matplotlib.pyplot as plt
-from imblearn.over_sampling import SMOTE
-import xgboost as xgb
 
 x = pd.read_csv('X_train.csv')
-y = pd.read_csv('y.csv')
+y = pd.read_csv('y_train.csv')
 X_test_pred = pd.read_csv('X_test_pred.csv')
 
-# Combine x and y for splitting
+# combine x and y for splitting
 df = pd.concat([x, y], axis=1)
 
-# Split original data
+# split original data
 x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.2, random_state=42, shuffle=True)
-
-
 
 # Define classifiers and their parameter grids
 classifiers = {
     'RandomForest': (RandomForestClassifier(random_state=42), {'n_estimators': [100, 200, 300], 'max_depth': [None, 10, 20], 'min_samples_split': [2, 5, 10]}),
     'SVC': (SVC(probability=True, random_state=42), {'C': [0.1, 1, 10], 'kernel': ['rbf']}),
+<<<<<<< HEAD
     'AdaBoost': (AdaBoostClassifier(random_state=42), {'n_estimators': [50, 100, 200], 'learning_rate': [0.01, 0.1, 1]}),
 
 
 classifier_name = 'RandomForest'  # Example: Switch between 'RandomForest', 'SVC', 'AdaBoost', 'XGBoost'
 =======
  
+=======
+    'AdaBoost': (AdaBoostClassifier(random_state=42), {'n_estimators': [50, 100, 200], 'learning_rate': [0.01, 0.1, 1]})
+}
+
+classifier_name = 'RandomForest'  # Switch between 'RandomForest', 'SVC', 'AdaBoost'
+>>>>>>> 9dfbdf6 (submit_version)
 model, param_grid = classifiers[classifier_name]
 
 accuracies = []
@@ -41,13 +49,14 @@ recalls = []
 precisions = []
 cross_entropy_losses = []
 
+# Define binary cross-entropy loss function
 def binary_cross_entropy(y_true, y_prob):
     # Avoid division by zero
     epsilon = 1e-15
     y_prob = np.clip(y_prob, epsilon, 1 - epsilon)
     return -np.mean(y_true * np.log(y_prob) + (1 - y_true) * np.log(1 - y_prob))
 
-best_models = {}
+best_models = {} # Store the best model for each label
 for column in y_train.columns:
     # Create a DataFrame for each label within the training data
     df_train = pd.concat([x_train, y_train[column]], axis=1)
@@ -74,9 +83,7 @@ for column in y_train.columns:
     fpr, tpr, thresholds = roc_curve(y_test[column], probabilities)
     roc_auc = auc(fpr, tpr)
 
-    # Prediction and scoring
-    # labels = grid.predict(x_test)
-    # Find the optimal threshold
+    # Prediction and scoring using optimal threshold
     optimal_idx = np.argmax(tpr - fpr)
     optimal_threshold = thresholds[optimal_idx]
     
@@ -108,8 +115,7 @@ print('Binary Cross-Entropy Losses:', cross_entropy_losses)
 
 print(sum(cross_entropy_losses) / len(cross_entropy_losses))
 
-
-
+# Predict on the real test data
 X_test_pred = X_test_pred[x_train.columns]
 
 print("Training columns:", x_train.columns)
@@ -122,6 +128,3 @@ for column, model in best_models.items():
     predictions_df[column] = probabilities
     
 predictions_df.to_csv('y_pred.csv', index=False)
-
-
-np.save(df.to_numpy(), 'filename')

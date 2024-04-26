@@ -204,12 +204,10 @@ X_train.to_csv('X_train.csv', index=False)
 y_train.to_csv('y_train.csv', index=False)
 
 
-
 # final columns to drop
 final_columns_to_drop = columns_to_drop + low_importance_features
 
 visualize_correlations(X_train, dataset_name='X_train')
-
 
 X_test_pred.drop(columns=low_importance_features, inplace=True)
 X_test_pred.to_csv('X_test_pred.csv', index=False)
